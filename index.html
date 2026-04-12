@@ -1,167 +1,209 @@
-<!DOCTYPE html>
-<html lang="vi">
+<!DOCTYPE html> 
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>THEO DÕI TIẾN ĐỘ DỤNG CỤ PHẪU THUẬT</title>
+  <base target="_top">
   <style>
-    :root {
-      --primary-color: #00796B;
-      --bg-color: #f4f7f6;
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f7f7f7;
     }
-    body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: var(--bg-color); margin: 0; }
-    h2 { background: var(--primary-color); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    
+    h2 {
+      background: #00796B;
+      color: white;
+      padding: 12px;
+      border-radius: 4px;
+      text-align: center;
+    }
     #filterContainer {
-      background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;
-      display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      margin-top: 20px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
     }
-    .filter-item { flex: 1; min-width: 200px; }
-    label { font-weight: bold; font-size: 14px; color: #555; display: block; margin-bottom: 8px; }
-    select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
-    th { background-color: var(--primary-color); color: white; font-weight: 600; text-transform: uppercase; font-size: 13px; }
-    
-    /* Màu trạng thái dựa trên yêu cầu của bạn */
-    .status-error { background-color: #e53935 !important; color: white !important; } /* Máy lỗi */
-    .status-waiting { background-color: #FFF9C4 !important; } /* Vàng nhạt: Chờ đóng gói */
-    .status-sterilizing { background-color: #E1F5FE !important; } /* Xanh lam nhạt: Đang tiệt khuẩn */
-    .status-sterile { background-color: #2196F3 !important; color: white !important; } /* Xanh lam: Hoàn thành */
-    .status-shipped { background-color: #0D47A1 !important; color: white !important; } /* Xanh đậm: Vận chuyển */
-    .status-using { background-color: #bdbdbd !important; opacity: 0.6; } /* Xám: Đang sử dụng */
-
-    #loading { text-align: center; font-weight: bold; color: var(--primary-color); padding: 50px; }
-    .update-time { text-align: right; font-size: 12px; color: #888; margin-top: 10px; }
+    select {
+      padding: 8px;
+      font-size: 16px;
+      width: 220px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #00796B;
+      color: white;
+    }
+    .status-error { background-color: #e53935 !important; color: white !important; }
+    .status-waiting { background-color: #f9a825 !important; color: black !important; }
+    .status-sterile { background-color: #c8e6c9 !important; }
+    .status-shipped { background-color: #b3e5fc !important; }
+    .status-using { background-color: #81c784 !important; color: black !important; }
+    .status-sterilizing { background-color: #f9a825 !important; color: black !important; }
   </style>
-</head>
-<body>
-
-  <h2>THEO DÕI TIẾN ĐỘ DỤNG CỤ PHẪU THUẬT</h2>
-
-  <div id="filterContainer">
-    <div class="filter-item">
-      <label>Trạng thái:</label>
-      <select id="filter" onchange="showData()"></select>
-    </div>
-    <div class="filter-item">
-      <label>Ngày:</label>
-      <select id="timeFilter" onchange="showData()"></select>
-    </div>
-    <div class="filter-item">
-      <label>Tìm tên bộ dụng cụ:</label>
-      <input type="text" id="searchTenBo" placeholder="Nhập tên bộ..." oninput="showData()">
-    </div>
-  </div>
-
-  <div id="loading">Đang tải dữ liệu từ hệ thống...</div>
-
-  <div id="tableWrapper" style="display:none;">
-    <table>
-      <thead>
-        <tr>
-          <th>Trạng thái</th>
-          <th>Tên bộ dụng cụ</th>
-          <th>Đơn lẻ</th>
-          <th>Thủ thuật</th>
-          <th>Dự kiến hoàn thành</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div class="update-time" id="lastUpdate">Cập nhật lần cuối: --:--</div>
-  </div>
 
   <script>
-    // CHÚ Ý: THAY ĐƯỜNG DẪN WEB APP CỦA BẠN VÀO ĐÂY
-    const WEB_APP_URL = "DÁN_LINK_WEB_APP_GS_CỦA_BẠN_VÀO_ĐÂY";
-
     let allData = [];
+    let lastUpdateValue = "";
 
     function normalizeStr(str) {
-      if (!str) return "";
-      return str.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      return str.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
     }
 
     function getRowClass(status) {
+      if (!status) return "";
       const s = normalizeStr(status);
       if (s.includes("may loi")) return "status-error";
       if (s.includes("cho dong goi")) return "status-waiting";
-      if (s.includes("dang tiet khuan")) return "status-sterilizing";
       if (s.includes("hoan thanh tiet khuan")) return "status-sterile";
       if (s.includes("van chuyen")) return "status-shipped";
-      if (s.includes("dang su dung")) return "status-using";
+      if (s.includes("dang su dung")) return "status-using"; 
+      if (s.includes("dang tiet khuan")) return "status-sterilizing";
       return "";
     }
 
-    async function loadData() {
-      try {
-        const response = await fetch(WEB_APP_URL);
-        const result = await response.json();
-        
-        allData = result.allData;
-        document.getElementById("lastUpdate").innerText = "Cập nhật lần cuối: " + result.lastUpdate;
-        
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("tableWrapper").style.display = "block";
-        
-        updateFilterOptions();
-        showData();
-      } catch (error) {
-        console.error(error);
-        document.getElementById("loading").innerText = "Lỗi kết nối dữ liệu! Vui lòng kiểm tra lại Deployment.";
-      }
+    function loadData() {
+      google.script.run.withSuccessHandler(render).getData();
     }
 
-    function updateFilterOptions() {
+    function render(data) {
+      data.sort((a, b) => {
+        const dateA = new Date(`${a.ngay}T${a.giodukienhoanthanh}`);
+        const dateB = new Date(`${b.ngay}T${b.giodukienhoanthanh}`);
+        return dateB - dateA;
+      });
+
+      allData = data;
+
       const statusSelect = document.getElementById("filter");
-      const timeSelect = document.getElementById("timeFilter");
+      statusSelect.innerHTML = "";
 
-      let statuses = [...new Set(allData.map(r => r.trangthai).filter(x => x))];
-      let dates = [...new Set(allData.map(r => r.ngay).filter(x => x))];
+      let uniqueStatuses = Array.from(new Set(data.map(r => r.trangthai).filter(x => x)));
+      uniqueStatuses.sort((a, b) => normalizeStr(a).localeCompare(normalizeStr(b)));
 
-      statusSelect.innerHTML = '<option value="all">-- Tất cả trạng thái --</option>' + 
-        statuses.map(s => `<option value="${normalizeStr(s)}">${s}</option>`).join('');
-      
-      timeSelect.innerHTML = '<option value="all">-- Tất cả ngày --</option>' + 
-        dates.map(d => `<option value="${d}">${d}</option>`).join('');
+      statusSelect.innerHTML = `<option value="all">-- Tất cả trạng thái --</option>`;
+      uniqueStatuses.forEach(val => {
+        statusSelect.innerHTML += `<option value="${normalizeStr(val)}">${val}</option>`;
+      });
+
+      google.script.run.withSuccessHandler(function(V2Date) {
+        const timeSelect = document.getElementById("timeFilter");
+        timeSelect.innerHTML = "";
+
+        let timeSet = [...new Set(data.map(r => r.ngay).filter(x => x))];
+        if (!timeSet.includes(V2Date)) timeSet.push(V2Date);
+
+        timeSet.sort((a, b) => {
+          const [da, ma, ya] = a.split("/").map(Number);
+          const [db, mb, yb] = b.split("/").map(Number);
+          return new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da);
+        });
+
+        timeSelect.innerHTML = `<option value="all">-- Tất cả ngày --</option>`;
+        timeSet.forEach(val => {
+          timeSelect.innerHTML += `<option value="${val}">${val}</option>`;
+        });
+
+        showData();
+      }).getLastUpdate();
     }
 
     function showData() {
-      const statusFilter = document.getElementById("filter").value;
+      const statusFilter = normalizeStr(document.getElementById("filter").value);
       const timeFilter = document.getElementById("timeFilter").value;
       const searchTenBo = normalizeStr(document.getElementById("searchTenBo").value);
-      
+
       const tbody = document.getElementById("tbody");
       tbody.innerHTML = "";
 
-      const filtered = allData.filter(r => {
-        const rStatus = normalizeStr(r.trangthai);
-        const rTenBo = normalizeStr(r.tenbo);
-        return (statusFilter === "all" || rStatus === statusFilter) &&
-               (timeFilter === "all" || r.ngay === timeFilter) &&
-               (searchTenBo === "" || rTenBo.includes(searchTenBo));
+      let filtered = allData.filter(r => {
+        const rStatus = normalizeStr(r.trangthai || "");
+        const rTenBo = normalizeStr(r.tenbo || "");
+
+        return (statusFilter === "all" || rStatus === statusFilter)
+          && (timeFilter === "all" || r.ngay === timeFilter)
+          && (searchTenBo === "" || rTenBo.includes(searchTenBo));
       });
 
       filtered.forEach(row => {
         const tr = document.createElement("tr");
         tr.className = getRowClass(row.trangthai);
+
         tr.innerHTML = `
-          <td><strong>${row.trangthai || ''}</strong></td>
-          <td>${row.tenbo || ''}</td>
-          <td>${row.donle || ''}</td>
-          <td>${row.thuthuat || ''}</td>
-          <td>${row.giodukienhoanthanh || ''}</td>
+          <td>
+            <select onchange="updateStatus('${row.id}', this.value)">
+              <option value="dang tiet khuan" ${normalizeStr(row.trangthai) === "dang tiet khuan" ? "selected" : ""}>Đang tiệt khuẩn</option>
+              <option value="hoan thanh tiet khuan" ${normalizeStr(row.trangthai) === "hoan thanh tiet khuan" ? "selected" : ""}>Hoàn thành tiệt khuẩn</option>
+              <option value="dang su dung" ${normalizeStr(row.trangthai) === "dang su dung" ? "selected" : ""}>Đang sử dụng</option>
+              <option value="may loi" ${normalizeStr(row.trangthai) === "may loi" ? "selected" : ""}>Máy lỗi</option>
+              <option value="cho dong goi" ${normalizeStr(row.trangthai) === "cho dong goi" ? "selected" : ""}>Chờ đóng</option>
+              <option value="van chuyen" ${normalizeStr(row.trangthai) === "van chuyen" ? "selected" : ""}>Đã vận chuyển</option>
+            </select>
+          </td>
+          <td>${row.tenbo}</td>
+          <td>${row.donle}</td>
+          <td>${row.thuthuat}</td>
+          <td>${row.giodukienhoanthanh}</td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    // Tự động tải dữ liệu khi mở trang
-    window.onload = loadData;
-    // Tự động làm mới mỗi 60 giây
-    setInterval(loadData, 60000);
+    function updateStatus(id, value) {
+      google.script.run.withSuccessHandler(loadData).updateStatus(id, value);
+    }
+
+    window.onload = () => {
+      google.script.run.withSuccessHandler(function(v) {
+        lastUpdateValue = v;
+        loadData();
+      }).getLastUpdate();
+    };
   </script>
+</head>
+
+<body>
+  <h2>THEO DÕI TIẾN ĐỘ DỤNG CỤ PHẪU THUẬT</h2>
+
+  <div id="filterContainer">
+    <div>
+      <label><strong>Lọc trạng thái:</strong></label><br>
+      <select id="filter" onchange="showData()"></select>
+    </div>
+
+    <div>
+      <label><strong>Lọc ngày:</strong></label><br>
+      <select id="timeFilter" onchange="showData()"></select>
+    </div>
+
+    <div>
+      <label><strong>Tìm tên bộ:</strong></label><br>
+      <input type="text" id="searchTenBo" oninput="showData()">
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Trạng thái</th>
+        <th>Tên bộ</th>
+        <th>đơn lẻ </th>
+        <th>thủ thuật </th>
+        <th>giodukienhoanthanh</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
 </body>
 </html>

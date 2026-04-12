@@ -1,80 +1,47 @@
-/**
- * HÀM QUAN TRỌNG NHẤT: Trả về dữ liệu JSON cho Vercel
- */
-function doGet(e) {
-  try {
-    const data = getData();
-    const lastUpdate = getLastUpdate();
-    
-    const result = {
-      allData: data,
-      lastUpdate: lastUpdate,
-      status: "success"
-    };
-    
-    // Trả về dạng JSON thay vì HtmlService
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({status: "error", message: error.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile("trangthaidungcu")
+    .setTitle("THEO DÕI TIẾN ĐỘ DỤNG CỤ PHẪU THUẬT");
 }
 
-/**
- * Lấy dữ liệu từ Sheet
- */
 function getData() {
   const ss = SpreadsheetApp.openById('19vz99n7clMN3ey4k_SSD8iXYIhZe0IR0oh5oaZZs2ro');
   const sheet = ss.getSheetByName("TIETKHUANDUNGCU");
   const data = sheet.getDataRange().getDisplayValues();
 
   return data.slice(1).map(r => ({
-    id: r[0],               // Cột A
-    ngay: r[1],             // Cột B
-    tenbo: r[3],            // Cột D
-    donle: r[4],            // Cột E
-    thuthuat: r[5],         // Cột F
-    trangthai: r[11],       // Cột L
-    giodukienhoanthanh: r[12] // Cột M
+    id: r[0], // ✅ cột A
+    trangthai: r[11],
+    tenbo: r[3],
+    donle: r[4],
+    thuthuat: r[5],
+    ngay: r[1],
+    giodukienhoanthanh: r[12],
   }));
 }
 
-/**
- * Lấy thời gian cập nhật cuối
- */
 function getLastUpdate() {
-  const sheet = SpreadsheetApp.openById('18KUzMI-8ZffZW-kMp2icTAN37PNw9w_YlzoOyybnXMY')
+  const sheet = SpreadsheetApp.openById('19vz99n7clMN3ey4k_SSD8iXYIhZe0IR0oh5oaZZs2ro')
     .getSheetByName('TIETKHUANDUNGCU');
-  const val = sheet.getRange("M2").getValue();
-  return val ? val.toString() : "";
-}
-
-/**
- * Hàm cập nhật trạng thái (Dành cho việc nâng cấp sau này)
- */
-function doPost(e) {
-  // Đối với Vercel, nếu bạn muốn thay đổi dữ liệu từ Web, 
-  // bạn sẽ gửi yêu cầu đến hàm doPost này.
-  const params = JSON.parse(e.postData.contents);
-  updateStatus(params.id, params.trangthai);
-  
-  return ContentService.createTextOutput("Cập nhật thành công")
-    .setMimeType(ContentService.MimeType.TEXT);
+  return sheet.getRange("M2").getValue().toString();
 }
 
 function updateStatus(id, trangthai) {
-  const sheet = SpreadsheetApp.openById('18KUzMI-8ZffZW-kMp2icTAN37PNw9w_YlzoOyybnXMY')
+  const sheet = SpreadsheetApp.openById('19vz99n7clMN3ey4k_SSD8iXYIhZe0IR0oh5oaZZs2ro')
     .getSheetByName("TIETKHUANDUNGCU");
+
   const data = sheet.getDataRange().getValues();
 
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] == id) {
-      sheet.getRange(i + 1, 12).setValue(trangthai); // Cột L
-      // Cập nhật luôn thời gian thay đổi vào M2
-      sheet.getRange("M2").setValue(new Date());
+    if (data[i][0] == id) { // ✅ dùng ID
+      sheet.getRange(i + 1, 12).setValue(trangthai);
       break;
     }
   }
+}
+
+function onChange() {
+  const sheet = SpreadsheetApp.openById('19vz99n7clMN3ey4k_SSD8iXYIhZe0IR0oh5oaZZs2ro')
+    .getSheetByName('TIETKHUANDUNGCU');
+
+  sheet.getRange("M2").setValue(new Date());
 }
